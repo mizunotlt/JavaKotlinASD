@@ -87,6 +87,29 @@ class BinaryTreeTest {
     }
 
     @Test
+    fun testIterator() {
+        val random = Random()
+        for (iteration in 1..100) {
+            val list = mutableListOf<Int>()
+            for (i in 1..20) {
+                list.add(random.nextInt(100))
+            }
+            val treeSet = TreeSet<Int>()
+            val binarySet = BinaryTree<Int>()
+            for (element in list) {
+                treeSet += element
+                binarySet += element
+            }
+            val treeIt = treeSet.iterator()
+            val binaryIt = binarySet.iterator()
+            println("Traversing $list")
+            while (treeIt.hasNext()) {
+                assertEquals(treeIt.next(), binaryIt.next())
+            }
+        }
+    }
+
+    @Test
     fun testIteratorRemove() {
         val random = Random()
         for (iteration in 1..100) {
