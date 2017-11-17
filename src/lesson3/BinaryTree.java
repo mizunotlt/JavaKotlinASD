@@ -62,17 +62,15 @@ public class BinaryTree<T extends Comparable<T>> extends AbstractSet<T> implemen
         return findParent(root, value);
     }
     private Node<T> findParent(Node<T> start, T value) {
-        //Если нашли родительский узел
-        if ((start.left != null && start.left.value == value) || (start.right != null && start.right.value == value))
-            return start;
         int comparison = value.compareTo(start.value);
-        if (comparison == 0) {
-            return start;
-        } else if (comparison < 0) {
-            if (start.left == null) return start;
+        if (comparison == 0) return null;
+        if (comparison < 0) {
+            if (start.left == null) return null;
+            if (start.left.value.compareTo(value) == 0) return start;
             return findParent(start.left, value);
         } else {
-            if (start.right == null) return start;
+            if (start.right == null) return null;
+            if (start.right.value.compareTo(value) == 0) return start;
             return findParent(start.right, value);
         }
     }
@@ -84,64 +82,79 @@ public class BinaryTree<T extends Comparable<T>> extends AbstractSet<T> implemen
             return false;
         //Нет дочерних узлов
         if ((node.left == null) && (node.right == null)) {
-            if (findParent(root, node.value).right != null) {
-                if (findParent(root, node.value).right.value == (T) o) {
-                    findParent(root, node.value).right = null;
-                    return true;
-                }
-            }
-            if (findParent(root, node.value).left != null) {
-                if (findParent(root, node.value).left.value == (T) o) {
-                    findParent(root, node.value).left = null;
-                    return true;
-                }
+            if (node.value.compareTo(findParent(root, node.value).value) > 0){
+                findParent(root, node.value).right = null;
+                size --;
+                return true;
+            }else{
+                findParent(root, node.value).left = null;
+                size --;
+                return true;
             }
         }
         //левый дочерний узел
         if ((node.left != null) && (node.right == null)) {
-            if(findParent(root, node.value).left.value == node.value){
-                findParent(root, node.value).left = node.left;
-                return true;
-            }
-            if(findParent(root, node.value).right.value == node.value){
+            if (node.value.compareTo(findParent(root, node.value).value) > 0){
                 findParent(root, node.value).right = node.left;
+                size --;
+                return true;
+            }else{
+                findParent(root, node.value).left = node.left;
+                size --;
                 return true;
             }
         }
         //правый дочерний узел
         if ((node.left == null) && (node.right != null)) {
-            Node <T> snode = findParent(node.value);
-            if(findParent(root, node.value).left.value == node.value){
-                findParent(root, node.value).left = node.right;
-                return true;
-            }
-            if(findParent(root, node.value).right.value == node.value){
+            if (node.value.compareTo(findParent(root, node.value).value) > 0){
                 findParent(root, node.value).right = node.right;
+                size --;
+                return true;
+            }else{
+                findParent(root, node.value).left = node.right;
+                size --;
                 return true;
             }
         }
-        //зел имеет и левый дочерний узел и правый
+        //узел имеет и левый дочерний узел и правый
         if ((node.left != null) && (node.right != null)){
             Node <T> tempLeft = findLeftNull(find((T) o).right);
-            tempLeft.left = find((T) o).left;
-            findParent((T) o).right = tempLeft;
-            return true;
+            if (tempLeft.right == null){
+                tempLeft.left = node.left;
+                tempLeft.right = node.right;
+                findParent(root, tempLeft.value).left = null;
+                if (node.value.compareTo(findParent(root, node.value).value) > 0){
+                    findParent(root, node.value).right = tempLeft;
+                }else{
+                    findParent(root, node.value).left = tempLeft;
+                }
+                size --;
+                return true;
+            }
+            if (tempLeft.right != null){
+                tempLeft.left = node.left;
+                findParent(root, tempLeft.value).left = tempLeft.right;
+                tempLeft.right = node.right;
+                if (node.value.compareTo(findParent(root, node.value).value) > 0){
+                    findParent(root, node.value).right = tempLeft;
+                }else{
+                    findParent(root, node.value).left = tempLeft;
+                }
+                size --;
+                return true;
+            }
         }
-
         return false;
     }
     private Node<T> findLeftNull(Node<T> node) {
         if (node == null) {
-            return null; //
+            return null;
         }
         if (node.left != null) {
             return findLeftNull(node.left);
         }
         return node;
     }
-
-
-
 
     @Override
     public boolean contains(Object o) {
@@ -178,17 +191,26 @@ public class BinaryTree<T extends Comparable<T>> extends AbstractSet<T> implemen
         private BinaryTreeIterator() {}
 
         private Node<T> findNext() {
-            if (current.right != null)
-                return findMin(current);
-            //дошли до самого нижнего правого
-            else if (current.value.compareTo(nodeToCompare(current).value) < 0) return nodeToCompare(current);
-            return null;
+            if (current == null)
+                return  new Node<>(first());
+            if (current.right != null){
+                current.right = findMin(current.right);
+            }
+            else{
+                if(findParentIt(root,current.value) == null)
+                    return null;
+                if (findParentIt(root,current.value).value.compareTo(current.value) > 0){
+                    return findParentIt(root,current.value);
+                }
+                else return null;
+            }
+            return current.right;
         }
 
         @Override
         public boolean hasNext() {
 
-            return findNext() != null;
+            return findNext() !=  null;
         }
 
         @Override
@@ -204,17 +226,23 @@ public class BinaryTree<T extends Comparable<T>> extends AbstractSet<T> implemen
         }
     }
     private Node<T> findMin(Node<T> current){
-        current = current.right;
-        while(current.left != null) current = current.left;
+        while(current.left != null) {
+            current = current.left;
+        }
         return current;
     }
-    private Node<T> nodeToCompare(Node<T> node){
-        Node<T> current = root;
-
-        if (current.value.compareTo(node.value) > 0 && current.left.value != node.value) current = current.left;
-        else if (current.value.compareTo(node.value) < 0 && current.right.value != node.value) current = current.right;
-
-        return current;
+    private Node<T> findParentIt(Node<T> start, T value) {
+        int comparison = value.compareTo(start.value);
+        if (comparison == 0) return null;
+        if (comparison < 0) {
+            if (start.left == null) return null;
+            if (start.left.value.compareTo(value) == 0) return start;
+            return findParentIt(start.left, value);
+        } else {
+            if (start.right == null) return null;
+            if (start.right.value.compareTo(value) == 0) return findParentIt(root, start.value);
+            return findParentIt(start.right, value);
+        }
     }
 
     @NotNull
@@ -272,5 +300,5 @@ public class BinaryTree<T extends Comparable<T>> extends AbstractSet<T> implemen
         }
         return current.value;
     }
-
 }
+
